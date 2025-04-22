@@ -1,10 +1,16 @@
-name: Build Docker images
+name: Build alpine-fips Docker image
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
+    paths:
+      - "alpine-fips/Dockerfile"
+
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "alpine-fips/Dockerfile"
 
 jobs:
 
@@ -16,11 +22,16 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Build alpine-fips image
+    - name: Build
       run: docker build ./alpine-fips --tag docker.io/kanstin/alpine-fips:latest
 
-    - name: Push alpine-fips image
-      run: |
-        docker login --username $DOCKER_HUB_USER ---password-stdin <<< ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker push docker.io/kanstin/alpine-fips:latest
+    - name: Login docker.io
+      uses: docker/login-action@v3
+      with:
+        registry: docker.io
+        username: ${{ vars.DOCKER_HUB_USER }}
+        password: ${{ vars.DOCKER_HUB_TOKEN }}
+
+    - name: Push docker.io
+      run: docker push docker.io/kanstin/alpine-fips:latest
 
