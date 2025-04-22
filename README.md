@@ -1,9 +1,10 @@
 # dockerfiles
-Misc dockerfiles for building useful containers.
+Miscellaneous dockerfiles for building useful containers.
 
 ## alpine-fips
 
 This is Alpine Linux v3.21 plus OpenSSL with the FIPS module.
+
 [![Build alpine-fips Docker image](https://github.com/crowleydi/dockerfiles/actions/workflows/docker-image.yml/badge.svg)](https://github.com/crowleydi/dockerfiles/actions/workflows/docker-image.yml)
 
 ## alpine-tomcat
