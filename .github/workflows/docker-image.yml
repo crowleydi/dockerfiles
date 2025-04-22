@@ -15,5 +15,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
     - name: Build alpine-fips image
       run: docker build ./alpine-fips --tag docker.io/kanstin/alpine-fips:latest
+
+    - name: Push alpine-fips image
+      run: docker login -u $DOCKER_HUB_USER -p ${{ secrets.DOCKER_HUB_TOKEN }}
+      run: docker push docker.io/kanstin/alpine-fips:latest
+
