@@ -81,7 +81,7 @@ jobs:
 
       - name: Create latest manifest and push
         run: |
-          docker manifest create \
+          docker manifest create --all \
             ${{ env.IMAGE_TAG }}:latest \
             --amend ${{ env.IMAGE_TAG }}:latest-arm64 \
             --amend ${{ env.IMAGE_TAG }}:latest-amd64
@@ -89,7 +89,7 @@ jobs:
 
       - name: Create VER manifest and push
         run: |
-          docker manifest create \
+          docker manifest create --all \
             ${{ env.IMAGE_TAG }}:${{ env.IMAGE_VER }} \
             --amend ${{ env.IMAGE_TAG }}:${{ env.IMAGE_VER }}-arm64 \
             --amend ${{ env.IMAGE_TAG }}:${{ env.IMAGE_VER }}-amd64
