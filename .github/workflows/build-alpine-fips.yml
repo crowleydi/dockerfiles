@@ -1,8 +1,8 @@
 name: Build alpine-fips Docker image
 env:
   IMAGE_BASE: docker.io/kanstin/alpine-fips
-  IMAGE_TAG: ${{ env.IMAGE_BASE }}:latest
-  IMAGE_VER: ${{ env.IMAGE_BASE }}:3.21
+  IMAGE_TAG: $IMAGE_BASE:latest
+  IMAGE_VER: $IMAGE_BASE:3.21
 
 on:
   workflow_dispatch:
