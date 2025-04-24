@@ -38,8 +38,8 @@ jobs:
         with:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
-          build-args:
-            - "TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}"
+          build-args: |
+            TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
           tags: |
             ${{ env.LATEST_TAG }}-amd64
             ${{ env.VERSION_TAG }}-amd64
@@ -65,8 +65,8 @@ jobs:
         with:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
-          build-args:
-            - "TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}"
+          build-args: |
+            TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
           tags: |
             ${{ env.LATEST_TAG }}-arm64
             ${{ env.VERSION_TAG }}-arm64
