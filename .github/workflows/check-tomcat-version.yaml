@@ -1,0 +1,85 @@
+name: Check Tomcat Version
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ "main" ]
+    paths:
+      - "alpine-tomcat/Dockerfile"
+
+permissions:
+  actions: write # Required to trigger other workflows
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      # Restore cached previous version
+      - name: Restore cached version
+        id: cache-version
+        uses: actions/cache@v4
+        with:
+          path: previous_version.txt
+          key: tomcat-version-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            tomcat-version-${{ runner.os }}-
+
+      # Set previous version environment variable
+      - name: Set previous version
+        id: previous
+        run: |
+          if [ -f "previous_version.txt" ]; then
+            echo "previous_version=$(cat previous_version.txt)" >> $GITHUB_ENV
+          else
+            echo "previous_version=none" >> $GITHUB_ENV
+          fi
+
+      # Scrape the latest Tomcat version using curl and grep/sed
+      - name: Scrape Tomcat version
+        id: scrape
+        run: |
+          curl -s "https://tomcat.apache.org/download-90.cgi" | \
+            grep -E '<h3 id="9\.0\.[0-9]+">' | \
+            sed -E 's/.*<h3 id="(9\.0\.[0-9]+)">.*/\1/' > version.txt || \
+            echo "unknown" > version.txt
+          cat version.txt
+          echo "current_version=$(cat version.txt)" >> $GITHUB_ENV
+
+      # Compare versions
+      - name: Compare versions
+        id: compare
+        run: |
+          current_version=${{ env.current_version }}
+          previous_version=${{ env.previous_version }}
+          if [ "$current_version" != "$previous_version" ] && \
+             [ "$previous_version" != "none" ] && \
+             [ "$current_version" != "unknown" ]; then
+            echo "New Tomcat version detected: $current_version"
+            echo "new_version_detected=true" >> $GITHUB_ENV
+            echo "new_version=$current_version" >> $GITHUB_ENV
+          elif [ "$current_version" == "unknown" ]; then
+            echo "Could not determine current version of Tomcat."
+            exit 1
+          else
+            echo "No new version detected or initial run."
+            echo "new_version_detected=false" >> $GITHUB_ENV
+          fi
+
+      # Save new version to cache
+      - name: Save new version to cache
+        if: steps.scrape.outcome == 'success'
+        run: |
+          mv version.txt previous_version.txt
+          # Cache will be updated automatically by actions/cache
+
+      # Trigger downstream workflow
+      - name: Trigger downstream workflow
+        if: env.new_version_detected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering downstream workflow for new Tomcat version: ${{ env.new_version }}"
+          #gh workflow run downstream.yml --ref ${{ github.ref }} -f version=${{ env.new_version }}
