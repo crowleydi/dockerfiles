@@ -1,4 +1,7 @@
 name: Build alpine-tomcat Docker image
+env:
+  IMAGE_BASE: docker.io/kanstin/alpine-tomcat
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,13 +9,16 @@ on:
         required: true
         default: "9.0.104"
 jobs:
-  env:
-    IMAGE_BASE: docker.io/kanstin/alpine-tomcat
-    IMAGE_TAG: docker.io/kanstin/alpine-tomcat:latest
-    IMAGE_VER: docker.io/kanstin/alpine-tomcat:${{ github.events.inputs.tomcat_version }}
+  setup-env:
+    steps:
+      - name: Login to Docker Hub
+        run: |
+          echo "LATEST_TAG=$IMAGE_BASE:latest" >> $GITHUB_ENV
+          echo "VERSION_TAG=$IMAGE_BASE:${{ github.events.inputs.tomcat_version }}" >> $GITHUB_ENV
 
   build-push-amd64:
     runs-on: ubuntu-24.04
+    needs: [setup-env]
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -34,11 +40,12 @@ jobs:
           buildArgs:
             - TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
           tags: |
-            ${{ env.IMAGE_TAG }}-amd64
-            ${{ env.IMAGE_VER }}-amd64
+            ${{ env.LATEST_TAG }}-amd64
+            ${{ env.VERSION_TAG }}-amd64
 
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
+    needs: [setup-env]
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -60,8 +67,8 @@ jobs:
           buildArgs:
             - TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
           tags: |
-            ${{ env.IMAGE_TAG }}-arm64
-            ${{ env.IMAGE_VER }}-arm64
+            ${{ env.LATEST_TAG }}-arm64
+            ${{ env.VERSION_TAG }}-arm64
 
   create-push-manifests:
     runs-on: ubuntu-24.04
@@ -78,16 +85,16 @@ jobs:
 
       - name: Create manifests and push
         run: |
-          arm64sha=$(docker manifest inspect ${{ env.IMAGE_TAG }}-arm64 \
+          arm64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-arm64 \
             | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          amd64sha=$(docker manifest inspect ${{ env.IMAGE_TAG }}-amd64 \
+          amd64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-amd64 \
             | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          docker manifest create ${{ env.IMAGE_TAG }} \
+          docker manifest create ${{ env.LATEST_TAG }} \
             ${{ env.IMAGE_BASE }}@$arm64sha \
             ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.IMAGE_TAG }}
-          docker manifest create ${{ env.IMAGE_VER }} \
+          docker manifest push -p ${{ env.LATEST_TAG }}
+          docker manifest create ${{ env.VERSION_TAG }} \
             ${{ env.IMAGE_BASE }}@$arm64sha \
             ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.IMAGE_VER }}
+          docker manifest push -p ${{ env.VERSION_TAG }}
 
