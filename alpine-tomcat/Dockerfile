@@ -5,7 +5,7 @@ ENV TOMCAT_TAR=apache-tomcat-${TOMCAT_VERSION}.tar.gz
 ENV URL=https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin
 ENV INSTALL_BASE=/usr/local
 ENV CATALINA_HOME=${INSTALL_BASE}/tomcat
-ENV PATH $CATALINA_HOME/bin:$PATH
+ENV PATH=$CATALINA_HOME/bin:$PATH
 
 RUN wget ${URL}/${TOMCAT_TAR} \
   && wget ${URL}/${TOMCAT_TAR}.sha512 \

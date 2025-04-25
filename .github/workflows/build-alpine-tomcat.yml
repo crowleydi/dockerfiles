@@ -35,7 +35,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
           build-args: |
-            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
+            TOMCAT_VERSION=${{ inputs.tomcat_version }}
           tags: |
             ${{ env.LATEST_TAG }}-amd64
             ${{ env.VERSION_TAG }}-amd64
@@ -66,7 +66,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
           build-args: |
-            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
+            TOMCAT_VERSION=${{ inputs.tomcat_version }}
           tags: |
             ${{ env.LATEST_TAG }}-arm64
             ${{ env.VERSION_TAG }}-arm64
