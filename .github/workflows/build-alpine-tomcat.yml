@@ -8,11 +8,13 @@ on:
       tomcat_version:
         required: true
         default: "9.0.104"
+        type: string
 
   workflow_call:
     inputs:
       tomcat_version:
         required: true
+        type: string
 
 jobs:
   build-push-amd64:
