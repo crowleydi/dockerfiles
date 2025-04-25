@@ -46,25 +46,21 @@ jobs:
             sed -E 's/.*<h3 id="(9\.0\.[0-9]+)">.*/\1/' > version.txt || \
             echo "unknown" > version.txt
           cat version.txt
-          echo "current_version=$(cat version.txt)" >> $GITHUB_ENV
+          echo "new_version=$(cat version.txt)" >> $GITHUB_ENV
 
       # Compare versions
       - name: Compare versions
         id: compare
         run: |
-          current_version=${{ env.current_version }}
-          previous_version=${{ env.previous_version }}
-          if [ "$current_version" != "$previous_version" ] && \
-             [ "$previous_version" != "none" ] && \
-             [ "$current_version" != "unknown" ]; then
-            echo "New Tomcat version detected: $current_version"
-            echo "new_version_detected=true" >> $GITHUB_ENV
-            echo "new_version=$current_version" >> $GITHUB_ENV
-          elif [ "$current_version" == "unknown" ]; then
-            echo "Could not determine current version of Tomcat."
+          if [ "$new_version" == "unknown" ]; then
+            echo "Could not determine available version of Tomcat."
             exit 1
+          elif [ "$previous_version" == "none" ] \
+            || [ "$previous_version" != "$new_version"]; then
+            echo "New Tomcat version detected: $new_version"
+            echo "new_version_detected=true" >> $GITHUB_ENV
           else
-            echo "No new version detected or initial run."
+            echo "No new version detected :("
             echo "new_version_detected=false" >> $GITHUB_ENV
           fi
 
@@ -72,14 +68,16 @@ jobs:
       - name: Save new version to cache
         if: steps.scrape.outcome == 'success'
         run: |
-          mv version.txt previous_version.txt
+          if [ "$new_version" != "unknown" ]; then
+            mv version.txt previous_version.txt
+          fi
           # Cache will be updated automatically by actions/cache
 
-      # Trigger downstream workflow
-      - name: Trigger downstream workflow
-        if: env.new_version_detected == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Triggering downstream workflow for new Tomcat version: ${{ env.new_version }}"
-          #gh workflow run downstream.yml --ref ${{ github.ref }} -f version=${{ env.new_version }}
+  # Trigger build-alpine-tomcat workflow
+  call-build-alpine-tomcat:
+    needs: check-version # Run after check-version job
+    if: env.new_version_detected == 'true' # Only run if new version detected
+    uses: ./.github/workflows/build-alpine-tomcat.yml
+    with:
+      tomcat_version: ${{ env.new_version }}
+    secrets: inherit # Pass all secrets from the calling workflow
