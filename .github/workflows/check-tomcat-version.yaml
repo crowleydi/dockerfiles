@@ -59,7 +59,7 @@ jobs:
             echo "Could not determine available version of Tomcat."
             exit 1
           elif [ "$previous_version" == "none" ] \
-            || [ "$previous_version" != "$new_version"]; then
+            || [ "$previous_version" != "$new_version" ]; then
             echo "New Tomcat version detected: $new_version"
             echo "new_version_detected=true" >> $GITHUB_ENV
           else
