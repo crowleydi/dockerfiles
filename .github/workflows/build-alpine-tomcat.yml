@@ -8,6 +8,12 @@ on:
       tomcat_version:
         required: true
         default: "9.0.104"
+
+  workflow_call:
+    inputs:
+      tomcat_version:
+        required: true
+
 jobs:
   build-push-amd64:
     runs-on: ubuntu-24.04
