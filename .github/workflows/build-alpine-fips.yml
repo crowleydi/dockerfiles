@@ -92,6 +92,11 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
+      - name: Set up tags
+        run: |
+          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
+          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+
       - name: Create manifests and push
         run: |
           arm64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-arm64 \
