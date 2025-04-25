@@ -1,8 +1,7 @@
 name: Build alpine-fips Docker image
 env:
   IMAGE_BASE: docker.io/kanstin/alpine-fips
-  IMAGE_TAG: docker.io/kanstin/alpine-fips:latest
-  IMAGE_VER: docker.io/kanstin/alpine-fips:3.21
+  BASE_VERSION: 3.21
 
 on:
   workflow_dispatch:
@@ -19,6 +18,8 @@ on:
 jobs:
   build-push-amd64:
     runs-on: ubuntu-24.04
+    env:
+      needToPush: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -32,17 +33,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set up tags
+        run: |
+          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
+          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-fips"
-          push: true
+          push: ${{ env.needToPush }}
           tags: |
-            ${{ env.IMAGE_TAG }}-amd64
-            ${{ env.IMAGE_VER }}-amd64
+            ${{ env.LATEST_TAG }}-amd64
+            ${{ env.VERSION_TAG }}-amd64
 
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
+    env:
+      needToPush: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -56,16 +64,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set up tags
+        run: |
+          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
+          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-fips"
-          push: true
+          push: ${{ env.needToPush }}
           tags: |
-            ${{ env.IMAGE_TAG }}-arm64
-            ${{ env.IMAGE_VER }}-arm64
+            ${{ env.LATEST_TAG }}-arm64
+            ${{ env.VERSION_TAG }}-arm64
 
   create-push-manifests:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
     steps:
@@ -78,25 +92,18 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Create latest manifest and push
+      - name: Create manifests and push
         run: |
-          arm64sha=$(docker manifest inspect ${{ env.IMAGE_TAG }}-arm64 \
+          arm64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-arm64 \
             | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          amd64sha=$(docker manifest inspect ${{ env.IMAGE_TAG }}-amd64 \
+          amd64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-amd64 \
             | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          docker manifest create ${{ env.IMAGE_TAG }} \
+          docker manifest create ${{ env.LATEST_TAG }} \
             ${{ env.IMAGE_BASE }}@$arm64sha \
             ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.IMAGE_TAG }}
-
-      - name: Create VER manifest and push
-        run: |
-          arm64sha=$(docker manifest inspect ${{ env.IMAGE_VER }}-arm64 \
-            | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          amd64sha=$(docker manifest inspect ${{ env.IMAGE_VER }}-amd64 \
-            | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          docker manifest create ${{ env.IMAGE_VER }} \
+          docker manifest push -p ${{ env.LATEST_TAG }}
+          docker manifest create ${{ env.VERSION_TAG }} \
             ${{ env.IMAGE_BASE }}@$arm64sha \
             ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.IMAGE_VER }}
+          docker manifest push -p ${{ env.VERSION_TAG }}
 
