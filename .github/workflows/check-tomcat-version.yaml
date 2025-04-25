@@ -16,6 +16,8 @@ permissions:
 jobs:
   check-version:
     runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.scrape.new_version }}
     steps:
       # Restore cached previous version
       - name: Restore cached version
@@ -79,5 +81,5 @@ jobs:
     if: env.new_version_detected == 'true' # Only run if new version detected
     uses: ./.github/workflows/build-alpine-tomcat.yml
     with:
-      tomcat_version: ${{ env.new_version }}
+      tomcat_version: ${{ needs.check-version.new_version }}
     secrets: inherit # Pass all secrets from the calling workflow
