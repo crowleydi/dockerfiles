@@ -3,7 +3,7 @@ FROM alpine:3.21
 
 # This MUST be one of the FIPS validated versions listed at
 # https://openssl-library.org/source/
-ARG OPENSSL_VERSION=3.0.9
+ARG OPENSSL_VERSION=3.1.2
 
 # download source for supplied version then build and install the FIPS module.
 RUN apk --no-cache \
@@ -28,6 +28,8 @@ RUN apk --no-cache -U add openssl \
     && openssl fipsinstall \
         -module /usr/lib/ossl-modules/fips.so \
         -out /etc/ssl/fipsmodule.cnf \
+    && sed -i 's|tls1-prf-ems-check = 0|tls1-prf-ems-check = 1|' /etc/ssl/fipsmodule.cnf \
+    && sed -i 's|drbg-no-trunc-md = 0|drbg-no-trunc-md = 1|' /etc/ssl/fipsmodule.cnf \
     && sed -i 's|# .include fipsmodule.cnf|.include /etc/ssl/fipsmodule.cnf|' /etc/ssl/openssl.cnf \
     && sed -i 's|providers = providers_sect|providers = providers_sect\nalg_section = algorithm_sect|' /etc/ssl/openssl.cnf \
     && sed -i 's|# fips = fips_sect|fips = fips_sect\nbase = base_sect|' /etc/ssl/openssl.cnf \
