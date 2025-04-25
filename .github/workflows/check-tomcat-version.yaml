@@ -69,11 +69,9 @@ jobs:
 
       # Save new version to cache
       - name: Save new version to cache
-        if: steps.scrape.outcome == 'success'
+        if: steps.scrape.new_version != 'unknown'
         run: |
-          if [ "$new_version" != "unknown" ]; then
-            mv version.txt previous_version.txt
-          fi
+          mv version.txt previous_version.txt
           # Cache will be updated automatically by actions/cache
 
   # Trigger build-alpine-tomcat workflow

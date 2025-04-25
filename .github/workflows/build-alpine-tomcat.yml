@@ -80,6 +80,7 @@ jobs:
             ${{ env.VERSION_TAG }}-arm64
 
   create-push-manifests:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
     steps:
