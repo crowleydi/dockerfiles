@@ -14,8 +14,9 @@ jobs:
     steps:
       - name: Login to Docker Hub
         run: |
-          echo "LATEST_TAG=$IMAGE_BASE:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=$IMAGE_BASE:${{ github.events.inputs.tomcat_version }}" >> $GITHUB_ENV
+          echo "TOMCAT_VERSION=${{ inputs.tomcat_version }}" >> $GITHUB_ENV
+          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
+          echo "VERSION_TAG=${IMAGE_BASE}:${TOMCAT_VERSION}" >> $GITHUB_ENV
 
   build-push-amd64:
     runs-on: ubuntu-24.04
@@ -39,7 +40,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
           build-args: |
-            TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
           tags: |
             ${{ env.LATEST_TAG }}-amd64
             ${{ env.VERSION_TAG }}-amd64
@@ -66,7 +67,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: true
           build-args: |
-            TOMCAT_VERSION=${{ github.events.inputs.tomcat_version }}
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
           tags: |
             ${{ env.LATEST_TAG }}-arm64
             ${{ env.VERSION_TAG }}-arm64
