@@ -26,10 +26,9 @@ RUN apk --no-cache \
 # ensure the sha1 works but md5 doesn't work
 RUN apk --no-cache -U add openssl \
     && openssl fipsinstall \
+        -pedantic \
         -module /usr/lib/ossl-modules/fips.so \
         -out /etc/ssl/fipsmodule.cnf \
-    && sed -i 's|tls1-prf-ems-check = 0|tls1-prf-ems-check = 1|' /etc/ssl/fipsmodule.cnf \
-    && sed -i 's|drbg-no-trunc-md = 0|drbg-no-trunc-md = 1|' /etc/ssl/fipsmodule.cnf \
     && sed -i 's|# .include fipsmodule.cnf|.include /etc/ssl/fipsmodule.cnf|' /etc/ssl/openssl.cnf \
     && sed -i 's|providers = providers_sect|providers = providers_sect\nalg_section = algorithm_sect|' /etc/ssl/openssl.cnf \
     && sed -i 's|# fips = fips_sect|fips = fips_sect\nbase = base_sect|' /etc/ssl/openssl.cnf \
@@ -39,6 +38,6 @@ RUN apk --no-cache -U add openssl \
     && echo '' >> /etc/ssl/openssl.cnf \
     && echo '[algorithm_sect]' >> /etc/ssl/openssl.cnf \
     && echo 'default_properties = fips=yes' >> /etc/ssl/openssl.cnf \
-    && openssl version -v \
     && ! openssl md5 /etc/ssl/openssl.cnf \
-    && openssl sha1 /etc/ssl/openssl.cnf
+    && openssl sha1 /etc/ssl/openssl.cnf \
+    && openssl list -provider-path providers -provider fips -providers
