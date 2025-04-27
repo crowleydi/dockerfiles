@@ -69,7 +69,7 @@ jobs:
 
       # Save new version to cache
       - name: Save new version to cache
-        if: steps.scrape.new_version != 'unknown'
+        if: env.new_version != 'unknown' && env.new_version != env.previous_version
         run: |
           mv version.txt previous_version.txt
           # Cache will be updated automatically by actions/cache
