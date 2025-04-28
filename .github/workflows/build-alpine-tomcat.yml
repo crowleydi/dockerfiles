@@ -6,13 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       tomcat_version:
+        description: "The version of Tomcat to include in the image."
         required: true
-        default: "9.0.104"
         type: string
+        default: "9.0.104"
 
   workflow_call:
     inputs:
       tomcat_version:
+        description: "The version of Tomcat to include in the image."
         required: true
         type: string
 
