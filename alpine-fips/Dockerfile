@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.10
 
-# This MUST be one of the FIPS validated versions listed at
-# https://openssl-library.org/source/
-ARG OPENSSL_VERSION=3.1.2
-
 # version of Alpine
 ARG BASE_VERSION=3.21
 FROM docker.io/library/alpine:${BASE_VERSION}
+
+# This MUST be one of the FIPS validated versions listed at
+# https://openssl-library.org/source/
+ARG OPENSSL_VERSION=3.1.2
 
 # download source for the supplied version, verify checksum and
 # PGP signature, then build and install the FIPS module.
