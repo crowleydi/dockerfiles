@@ -44,7 +44,7 @@ jobs:
         with:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
-            BASE_VERSION=${BASE_VERSION}
+            BASE_VERSION=${{ env.BASE_VERSION }}
           push: |
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
