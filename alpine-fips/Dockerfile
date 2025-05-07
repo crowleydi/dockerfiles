@@ -13,8 +13,8 @@ ARG OPENSSL_VERSION=3.1.2
 RUN apk --no-cache \
         --virtual .build-deps \
         add \
-			make gcc libgcc musl-dev linux-headers \
-			perl gpg gpg-agent \
+            make gcc libgcc musl-dev linux-headers \
+            perl gpg gpg-agent \
 # do build under /work \
     && mkdir /work && cd /work \
 # download tarball, sha, signature \
