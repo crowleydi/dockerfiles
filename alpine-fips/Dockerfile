@@ -10,11 +10,8 @@ ARG OPENSSL_VERSION=3.1.2
 
 # download source for the supplied version, verify checksum and
 # PGP signature, then build and install the FIPS module.
-RUN apk --no-cache \
-        --virtual .build-deps \
-        add \
-            make gcc libgcc musl-dev linux-headers \
-            perl gpg gpg-agent \
+RUN apk --no-cache --virtual build-deps add \
+        build-base linux-headers perl gpg gpg-agent \
 # do build under /work \
     && mkdir /work && cd /work \
 # download tarball, sha, signature \
@@ -37,19 +34,20 @@ RUN apk --no-cache \
 # install the FIPS module \
     && make -j 8 install_fips \
 # clean up build deps and work area \
-    && apk del .build-deps \
+    && apk del build-deps \
     && cd / && rm -fr /work ~/.gnupg
 
 # install openssl and then generate the fipsmodule.cnf configuration file from
 # the built FIPS module. Modify the distribution openssl.cnf file to activate
 # and use the built FIPS module.
-RUN apk --no-cache -U add openssl \
-    && FIPSCNF=/etc/ssl/fipsmodule.cnf \
-    && OPENCNF=/etc/ssl/openssl.cnf \
+RUN apk --no-cache --update add openssl \
+# this eval sets OPENSSLDIR and MODULESDIR \
+    && eval $(openssl version -d -m | sed 's/: /=/') \
+    && FIPSCNF=${OPENSSLDIR}/fipsmodule.cnf \
+    && OPENCNF=${OPENSSLDIR}/openssl.cnf \
     && openssl fipsinstall \
-        -pedantic \
-        -module /usr/lib/ossl-modules/fips.so \
-        -out ${FIPSCNF} \
+        -module ${MODULESDIR}/fips.so \
+        -pedantic -out ${FIPSCNF} \
 # edit the shipped openssl.cnf to enable the FIPS module \
     && sed -i "s|# .include fipsmodule.cnf|.include ${FIPSCNF}|" ${OPENCNF} \
     && sed -i "s|# fips = fips_sect|fips = fips_sect\nbase = base_sect|" ${OPENCNF} \
