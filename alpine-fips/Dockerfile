@@ -58,7 +58,7 @@ RUN apk --no-cache --update add openssl \
     && sed -i \
         -e "s|# .include fipsmodule.cnf|.include ${FIPSCNF}|" \
         -e "s|# fips = fips_sect|fips = fips_sect\nbase = base_sect|" \
-        -e "/providers = providers_sect/a alg_section = algorithm_sect" \
+        -e "/providers = provider_sect/a alg_section = algorithm_sect" \
         ${OPENCNF} \
 # add the [base_sect] and [algorithm_sect] sections to the end \
     && echo '' >> ${OPENCNF} \
