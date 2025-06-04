@@ -1,8 +1,10 @@
+# build arguments
+ARG BASE_VERSION=2.4.63
+
 # mount alpine-fips so we can copy over the FIPS module
 FROM kanstin/alpine-fips:latest AS source
 
 # base image
-ARG BASE_VERSION=2.4.63
 FROM httpd:${BASE_VERSION}-alpine
 
 # copy the fips module from alpine-fips
@@ -37,7 +39,7 @@ RUN apk --no-cache --update add openssl \
         -e 's/^#\(LoadModule .*mod_ssl.so\)/\1/' \
         -e 's/^#\(LoadModule .*mod_socache_shmcb.so\)/\1/' \
         conf/httpd.conf
-
+# run smoke-screen tests
 RUN  ! openssl md5 ${OPENCNF} \
     && openssl sha1 ${OPENCNF} \
     && openssl list -providers
