@@ -69,7 +69,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: "{{defaultContext}}:alpine-fips"
+          context: "{{defaultContext}}:alpine-apache"
           build-args: |
             BASE_VERSION=${{ inputs.apache_version }}
           push: |
