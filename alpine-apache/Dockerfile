@@ -2,7 +2,8 @@
 FROM kanstin/alpine-fips:latest AS source
 
 # base image
-FROM httpd:2.4-alpine
+ARG BASE_VERSION=2.4.63
+FROM httpd:${BASE_VERSION}-alpine
 
 # copy the fips module from alpine-fips
 COPY --from=source /usr/lib/ossl-modules/fips.so /usr/lib/ossl-modules
@@ -19,10 +20,10 @@ RUN apk --no-cache --update add openssl \
         -pedantic -out ${FIPSCNF} \
 # sed to edit the shipped openssl.cnf to enable the FIPS module \
     && sed -i \
-	    -e "s|# .include fipsmodule.cnf|.include ${FIPSCNF}|" \
+        -e "s|# .include fipsmodule.cnf|.include ${FIPSCNF}|" \
         -e "s|# fips = fips_sect|fips = fips_sect\nbase = base_sect|" \
         -e "/providers = provider_sect/a alg_section = algorithm_sect" \
-	    ${OPENCNF} \
+        ${OPENCNF} \
 # append [base_sect] and [algorithn_sect] to the end \
     && echo '' >> ${OPENCNF} \
     && echo '[base_sect]' >> ${OPENCNF} \
@@ -32,10 +33,10 @@ RUN apk --no-cache --update add openssl \
     && echo 'default_properties = fips=yes' >> ${OPENCNF} \
 # edit httpd.conf to enable https \
     && sed -i \
-		-e 's/^#\(Include .*httpd-ssl.conf\)/\1/' \
-		-e 's/^#\(LoadModule .*mod_ssl.so\)/\1/' \
-		-e 's/^#\(LoadModule .*mod_socache_shmcb.so\)/\1/' \
-		conf/httpd.conf
+        -e 's/^#\(Include .*httpd-ssl.conf\)/\1/' \
+        -e 's/^#\(LoadModule .*mod_ssl.so\)/\1/' \
+        -e 's/^#\(LoadModule .*mod_socache_shmcb.so\)/\1/' \
+        conf/httpd.conf
 
 RUN  ! openssl md5 ${OPENCNF} \
     && openssl sha1 ${OPENCNF} \
