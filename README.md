@@ -9,8 +9,9 @@ This is Alpine Linux v3.21 plus OpenSSL with the FIPS module.
 
 ## alpine-tomcat
 
-Tomcat 9.0.x built using alpine-fips as the base image. Tomcat is installed such that
-one can easily use this image instead of the official Tomcat image.
+This is Tomcat 9.0.x plus OpenSSL with the FIPS module and OpenJDK 17 JRE.
+Tomcat is installed so one can easily switch to use this image over
+the official Tomcat image.
 
 [![Build alpine-tomcat Docker image](https://github.com/crowleydi/dockerfiles/actions/workflows/build-alpine-tomcat.yml/badge.svg)](https://github.com/crowleydi/dockerfiles/actions/workflows/build-alpine-tomcat.yml)
 
