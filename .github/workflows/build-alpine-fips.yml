@@ -1,7 +1,7 @@
 name: Build alpine-fips Docker image
 env:
   IMAGE_BASE: docker.io/kanstin/alpine-fips
-  BASE_VERSION: 3.21
+  BASE_VERSION: 3.22
 
 on:
   workflow_dispatch:
