@@ -7,7 +7,7 @@ ENV PATH=${CATALINA_HOME}/bin:$PATH
 
 RUN apk --no-cache -U add \
     tomcat-native \
-    openjdk17-jre-headless \
+    openjdk21-jre-headless \
     ca-certificates \
 # add GPG to verify signature \
     gpg gpg-agent \
