@@ -9,7 +9,7 @@ This is Alpine Linux v3.21 plus OpenSSL with the FIPS module.
 
 ## alpine-tomcat
 
-This is Tomcat 9.0.x plus OpenSSL with the FIPS module and OpenJDK 17 JRE.
+This is Tomcat 9.0.x plus OpenSSL with the FIPS module and OpenJDK 21 JRE.
 Tomcat is installed so one can easily switch to use this image over
 the official Tomcat image.
 
