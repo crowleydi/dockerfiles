@@ -20,6 +20,10 @@ jobs:
       new_version: ${{ steps.scrape.outputs.new_version }}
       new_version_detected: ${{ steps.compare.outputs.new_version_detected }}
     steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       # Restore cached previous version
       - name: Restore cached version
         id: cache-version
@@ -55,6 +59,8 @@ jobs:
       - name: Compare versions
         id: compare
         run: |
+          # Read the new version from file
+          new_version=$(cat version.txt)
           if [ "$new_version" == "unknown" ]; then
             echo "Could not determine available version of Tomcat."
             exit 1
@@ -69,7 +75,7 @@ jobs:
 
       # Save new version to cache
       - name: Save new version to cache
-        if: env.new_version != 'unknown' && env.new_version != env.previous_version
+        if: steps.scrape.outputs.new_version != 'unknown' && steps.scrape.outputs.new_version != env.previous_version
         run: |
           mv version.txt previous_version.txt
           # Cache will be updated automatically by actions/cache
