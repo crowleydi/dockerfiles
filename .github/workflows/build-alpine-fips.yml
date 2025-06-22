@@ -1,4 +1,4 @@
-name: Build alpine-fips Docker image
+name: Build alpine-fips Docker image2
 env:
   IMAGE_BASE: docker.io/kanstin/alpine-fips
   BASE_VERSION: 3.22
@@ -41,27 +41,50 @@ jobs:
 
       - name: Set up tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST2_TAG=${IMAGE_BASE}-2:latest" >> $GITHUB_ENV
+          echo "VERSION2_TAG=${IMAGE_BASE}-2:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST3_TAG=${IMAGE_BASE}-3:latest" >> $GITHUB_ENV
+          echo "VERSION3_TAG=${IMAGE_BASE}-3:${BASE_VERSION}" >> $GITHUB_ENV
 
-      - name: Build and push
+      - name: Build and push FIPS 140-2
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             BASE_VERSION=${{ env.BASE_VERSION }}
+            OPENSSL_VERSION=3.0.9
           push: |
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.LATEST_TAG }}-amd64
-            ${{ env.VERSION_TAG }}-amd64
+            ${{ env.LATEST2_TAG }}-amd64
+            ${{ env.VERSION2_TAG }}-amd64
           # Improved cache configuration
           cache-from: |
-            type=gha,scope=alpine-fips-amd64-${{ env.BASE_VERSION }}
-            type=registry,ref=${{ env.LATEST_TAG }}-amd64
+            type=gha,scope=alpine-fips-2-amd64-${{ env.BASE_VERSION }}
+            type=registry,ref=${{ env.LATEST2_TAG }}-amd64
           cache-to: |
-            type=gha,mode=max,scope=alpine-fips-amd64-${{ env.BASE_VERSION }},ignore-error=true
+            type=gha,mode=max,scope=alpine-fips-2-amd64-${{ env.BASE_VERSION }},ignore-error=true
+
+      - name: Build and push FIPS 140-3
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:alpine-fips"
+          build-args: |
+            BASE_VERSION=${{ env.BASE_VERSION }}
+            OPENSSL_VERSION=3.1.2
+          push: |
+            ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
+             || github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.LATEST3_TAG }}-amd64
+            ${{ env.VERSION3_TAG }}-amd64
+          # Improved cache configuration
+          cache-from: |
+            type=gha,scope=alpine-fips-3-amd64-${{ env.BASE_VERSION }}
+            type=registry,ref=${{ env.LATEST3_TAG }}-amd64
+          cache-to: |
+            type=gha,mode=max,scope=alpine-fips-3-amd64-${{ env.BASE_VERSION }},ignore-error=true
 
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
@@ -82,30 +105,53 @@ jobs:
 
       - name: Set up tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST2_TAG=${IMAGE_BASE}-2:latest" >> $GITHUB_ENV
+          echo "VERSION2_TAG=${IMAGE_BASE}-2:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST3_TAG=${IMAGE_BASE}-3:latest" >> $GITHUB_ENV
+          echo "VERSION3_TAG=${IMAGE_BASE}-3:${BASE_VERSION}" >> $GITHUB_ENV
 
-      - name: Build and push
+      - name: Build and push FIPS 140-2
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             BASE_VERSION=${{ env.BASE_VERSION }}
+            OPENSSL_VERSION=3.0.9
           push: |
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.LATEST_TAG }}-arm64
-            ${{ env.VERSION_TAG }}-arm64
+            ${{ env.LATEST2_TAG }}-arm64
+            ${{ env.VERSION2_TAG }}-arm64
           # Improved cache configuration
           cache-from: |
-            type=gha,scope=alpine-fips-arm64-${{ env.BASE_VERSION }}
-            type=registry,ref=${{ env.LATEST_TAG }}-arm64
+            type=gha,scope=alpine-fips-2-arm64-${{ env.BASE_VERSION }}
+            type=registry,ref=${{ env.LATEST2_TAG }}-arm64
           cache-to: |
-            type=gha,mode=max,scope=alpine-fips-arm64-${{ env.BASE_VERSION }},ignore-error=true
+            type=gha,mode=max,scope=alpine-fips-2-arm64-${{ env.BASE_VERSION }},ignore-error=true
+
+      - name: Build and push FIPS 140-3
+        uses: docker/build-push-action@v6
+        with:
+          context: "{{defaultContext}}:alpine-fips"
+          build-args: |
+            BASE_VERSION=${{ env.BASE_VERSION }}
+            OPENSSL_VERSION=3.1.2
+          push: |
+            ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
+             || github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.LATEST3_TAG }}-arm64
+            ${{ env.VERSION3_TAG }}-arm64
+          # Improved cache configuration
+          cache-from: |
+            type=gha,scope=alpine-fips-3-arm64-${{ env.BASE_VERSION }}-3
+            type=registry,ref=${{ env.LATEST3_TAG }}-arm64
+          cache-to: |
+            type=gha,mode=max,scope=alpine-fips-3-arm64-${{ env.BASE_VERSION }},ignore-error=true
 
   create-push-manifests:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.do_publish == true
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
     steps:
@@ -117,21 +163,35 @@ jobs:
 
       - name: Set up tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST2_TAG=${IMAGE_BASE}-2:latest" >> $GITHUB_ENV
+          echo "VERSION2_TAG=${IMAGE_BASE}-2:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST3_TAG=${IMAGE_BASE}-3:latest" >> $GITHUB_ENV
+          echo "VERSION3_TAG=${IMAGE_BASE}-3:${BASE_VERSION}" >> $GITHUB_ENV
 
       - name: Create manifests and push
         run: |
-          arm64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-arm64 \
+          arm64sha2=$(docker manifest inspect ${{ env.LATEST2_TAG }}-arm64 \
             | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          amd64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-amd64 \
+          amd64sha2=$(docker manifest inspect ${{ env.LATEST2_TAG }}-amd64 \
             | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          docker manifest create ${{ env.LATEST_TAG }} \
-            ${{ env.IMAGE_BASE }}@$arm64sha \
-            ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.LATEST_TAG }}
-          docker manifest create ${{ env.VERSION_TAG }} \
-            ${{ env.IMAGE_BASE }}@$arm64sha \
-            ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.VERSION_TAG }}
+          docker manifest create ${{ env.LATEST2_TAG }} \
+            ${{ env.IMAGE_BASE }}@$arm64sha2 \
+            ${{ env.IMAGE_BASE }}@$amd64sha2
+          docker manifest push -p ${{ env.LATEST2_TAG }}
+          docker manifest create ${{ env.VERSION2_TAG }} \
+            ${{ env.IMAGE_BASE }}@$arm64sha2 \
+            ${{ env.IMAGE_BASE }}@$amd64sha2
+          docker manifest push -p ${{ env.VERSION2_TAG }}
+          arm64sha3=$(docker manifest inspect ${{ env.LATEST3_TAG }}-arm64 \
+            | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
+          amd64sha3=$(docker manifest inspect ${{ env.LATEST3_TAG }}-amd64 \
+            | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+          docker manifest create ${{ env.LATEST3_TAG }} \
+            ${{ env.IMAGE_BASE }}@$arm64sha3 \
+            ${{ env.IMAGE_BASE }}@$amd64sha3
+          docker manifest push -p ${{ env.LATEST3_TAG }}
+          docker manifest create ${{ env.VERSION3_TAG }} \
+            ${{ env.IMAGE_BASE }}@$arm64sha3 \
+            ${{ env.IMAGE_BASE }}@$amd64sha3
+          docker manifest push -p ${{ env.VERSION3_TAG }}
 
