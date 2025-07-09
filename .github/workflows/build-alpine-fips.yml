@@ -40,9 +40,10 @@ jobs:
           buildkitd-flags: --debug
 
       - name: Set up tags
+        id: tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -54,12 +55,12 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.LATEST_TAG }}-amd64
-            ${{ env.VERSION_TAG }}-amd64
+            ${{ steps.tags.outputs.LATEST_TAG }}-amd64
+            ${{ steps.tags.outputs.VERSION_TAG }}-amd64
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-amd64-${{ env.BASE_VERSION }}
-            type=registry,ref=${{ env.LATEST_TAG }}-amd64
+            type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-amd64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-amd64-${{ env.BASE_VERSION }},ignore-error=true
 
@@ -81,9 +82,10 @@ jobs:
           buildkitd-flags: --debug
 
       - name: Set up tags
+        id: tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -95,12 +97,12 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.LATEST_TAG }}-arm64
-            ${{ env.VERSION_TAG }}-arm64
+            ${{ steps.tags.outputs.LATEST_TAG }}-arm64
+            ${{ steps.tags.outputs.VERSION_TAG }}-arm64
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-arm64-${{ env.BASE_VERSION }}
-            type=registry,ref=${{ env.LATEST_TAG }}-arm64
+            type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-arm64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-arm64-${{ env.BASE_VERSION }},ignore-error=true
 
@@ -116,22 +118,33 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Set up tags
+        id: tags
         run: |
-          echo "LATEST_TAG=${IMAGE_BASE}:latest" >> $GITHUB_ENV
-          echo "VERSION_TAG=${IMAGE_BASE}:${BASE_VERSION}" >> $GITHUB_ENV
+          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
 
-      - name: Create manifests and push
+      - name: Get arm64 digest
+        id: arm64-digest
         run: |
-          arm64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-arm64 \
-            | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          amd64sha=$(docker manifest inspect ${{ env.LATEST_TAG }}-amd64 \
-            | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          docker manifest create ${{ env.LATEST_TAG }} \
-            ${{ env.IMAGE_BASE }}@$arm64sha \
-            ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.LATEST_TAG }}
-          docker manifest create ${{ env.VERSION_TAG }} \
-            ${{ env.IMAGE_BASE }}@$arm64sha \
-            ${{ env.IMAGE_BASE }}@$amd64sha
-          docker manifest push -p ${{ env.VERSION_TAG }}
+          digest=$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }}-arm64 | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
+          echo "digest=$digest" >> $GITHUB_OUTPUT
 
+      - name: Get amd64 digest
+        id: amd64-digest
+        run: |
+          digest=$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }}-amd64 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
+          echo "digest=$digest" >> $GITHUB_OUTPUT
+
+      - name: Create and push latest manifest
+        run: |
+          docker manifest create ${{ steps.tags.outputs.LATEST_TAG }} \
+            ${{ env.IMAGE_BASE }}@${{ steps.arm64-digest.outputs.digest }} \
+            ${{ env.IMAGE_BASE }}@${{ steps.amd64-digest.outputs.digest }}
+          docker manifest push -p ${{ steps.tags.outputs.LATEST_TAG }}
+
+      - name: Create and push version manifest
+        run: |
+          docker manifest create ${{ steps.tags.outputs.VERSION_TAG }} \
+            ${{ env.IMAGE_BASE }}@${{ steps.arm64-digest.outputs.digest }} \
+            ${{ env.IMAGE_BASE }}@${{ steps.amd64-digest.outputs.digest }}
+          docker manifest push -p ${{ steps.tags.outputs.VERSION_TAG }}
