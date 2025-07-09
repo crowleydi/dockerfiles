@@ -34,14 +34,14 @@ jobs:
           restore-keys: |
             tomcat-version-${{ runner.os }}-
 
-      # Set previous version environment variable
+      # Set previous version as step output
       - name: Set previous version
         id: previous
         run: |
           if [ -f "previous_version.txt" ]; then
-            echo "previous_version=$(cat previous_version.txt)" >> $GITHUB_ENV
+            echo "version=$(cat previous_version.txt)" >> $GITHUB_OUTPUT
           else
-            echo "previous_version=none" >> $GITHUB_ENV
+            echo "version=none" >> $GITHUB_OUTPUT
           fi
 
       # Scrape the latest Tomcat version using curl and grep/sed
@@ -59,8 +59,10 @@ jobs:
       - name: Compare versions
         id: compare
         run: |
-          # Read the new version from file
-          new_version=$(cat version.txt)
+          # Use the outputs from previous steps
+          new_version="${{ steps.scrape.outputs.new_version }}"
+          previous_version="${{ steps.previous.outputs.version }}"
+          
           if [ "$new_version" == "unknown" ]; then
             echo "Could not determine available version of Tomcat."
             exit 1
@@ -75,7 +77,7 @@ jobs:
 
       # Save new version to cache
       - name: Save new version to cache
-        if: steps.scrape.outputs.new_version != 'unknown' && steps.scrape.outputs.new_version != env.previous_version
+        if: steps.scrape.outputs.new_version != 'unknown' && steps.scrape.outputs.new_version != steps.previous.outputs.version
         run: |
           mv version.txt previous_version.txt
           # Cache will be updated automatically by actions/cache
@@ -83,8 +85,8 @@ jobs:
   # Trigger build-alpine-tomcat workflow
   call-build-alpine-tomcat:
     needs: check-version # Run after check-version job
-    if: needs.check-version.new_version_detected == 'true' # Only run if new version detected
+    if: needs.check-version.outputs.new_version_detected == 'true' # Only run if new version detected
     uses: ./.github/workflows/build-alpine-tomcat.yml
     with:
-      tomcat_version: ${{ needs.check-version.new_version }}
+      tomcat_version: ${{ needs.check-version.outputs.new_version }}
     secrets: inherit # Pass all secrets from the calling workflow
