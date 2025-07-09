@@ -63,6 +63,8 @@ jobs:
             type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-amd64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-amd64-${{ env.BASE_VERSION }},ignore-error=true
+          provenance: mode=max
+          sbom: true
 
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
@@ -105,6 +107,8 @@ jobs:
             type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-arm64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-arm64-${{ env.BASE_VERSION }},ignore-error=true
+          provenance: mode=max
+          sbom: true
 
   create-push-manifests:
     if: github.event_name == 'workflow_dispatch' && inputs.do_publish == 'true' || github.ref == 'refs/heads/main'

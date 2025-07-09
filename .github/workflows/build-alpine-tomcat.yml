@@ -52,6 +52,8 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
+          provenance: mode=max
+          sbom: true
 
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
@@ -86,6 +88,8 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
+          provenance: mode=max
+          sbom: true
 
   create-push-manifests:
     if: github.ref == 'refs/heads/main'
