@@ -19,6 +19,11 @@ on:
 jobs:
   build-push-amd64:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -36,6 +41,7 @@ jobs:
           echo "VERSION_TAG=${IMAGE_BASE}:${{ inputs.apache_version }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
+        id: build-push-amd64
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-apache"
@@ -52,8 +58,21 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Attest AMD64 image
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true || github.ref == 'refs/heads/main' }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}-amd64
+          subject-digest: ${{ steps.build-push-amd64.outputs.digest }}
+          push-to-registry: true
+
   build-push-arm64:
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -71,6 +90,7 @@ jobs:
           echo "VERSION_TAG=${IMAGE_BASE}:${{ inputs.apache_version }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
+        id: build-push-arm64
         uses: docker/build-push-action@v6
         with:
           context: "{{defaultContext}}:alpine-apache"
@@ -87,10 +107,23 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Attest ARM64 image
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true || github.ref == 'refs/heads/main' }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}-arm64
+          subject-digest: ${{ steps.build-push-arm64.outputs.digest }}
+          push-to-registry: true
+
   create-push-manifests:
     if: github.event_name == 'workflow_dispatch' && inputs.do_publish == 'true' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -129,3 +162,17 @@ jobs:
             ${{ env.IMAGE_BASE }}@${{ steps.arm64-digest.outputs.digest }} \
             ${{ env.IMAGE_BASE }}@${{ steps.amd64-digest.outputs.digest }}
           docker manifest push -p ${{ steps.tags.outputs.VERSION_TAG }}
+
+      - name: Attest latest manifest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}
+          subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
+          push-to-registry: true
+
+      - name: Attest version manifest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.tags.outputs.VERSION_TAG }}
+          subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.VERSION_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
+          push-to-registry: true
