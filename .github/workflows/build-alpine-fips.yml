@@ -1,7 +1,9 @@
 name: Build alpine-fips Docker image
 env:
-  IMAGE_BASE: docker.io/kanstin/alpine-fips
-  BASE_VERSION: 3.22
+  REGISTRY: docker.io
+  IMAGE_NAME: kanstin/alpine-fips
+  ALPINE_VERSION: 3.22
+  OPENSSL_VERSION: 3.1.2
 
 on:
   workflow_dispatch:
@@ -47,8 +49,8 @@ jobs:
       - name: Set up tags
         id: tags
         run: |
-          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-amd64
@@ -56,7 +58,8 @@ jobs:
         with:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
-            BASE_VERSION=${{ env.BASE_VERSION }}
+            ALPINE_VERSION=${{ env.ALPINE_VERSION }}
+            OPENSSL_VERSION=${{ env.OPENSSL_VERSION }}
           push: |
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
@@ -65,10 +68,10 @@ jobs:
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
           # Improved cache configuration
           cache-from: |
-            type=gha,scope=alpine-fips-amd64-${{ env.BASE_VERSION }}
+            type=gha,scope=alpine-fips-amd64-${{ env.ALPINE_VERSION }}
             type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-amd64
           cache-to: |
-            type=gha,mode=max,scope=alpine-fips-amd64-${{ env.BASE_VERSION }},ignore-error=true
+            type=gha,mode=max,scope=alpine-fips-amd64-${{ env.ALPINE_VERSION }},ignore-error=true
           provenance: mode=max
           sbom: true
 
@@ -76,7 +79,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true || github.ref == 'refs/heads/main' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}-amd64
+          subject-name: ${{ env.IMAGE_NAME }}:latest-amd64
           subject-digest: ${{ steps.build-push-amd64.outputs.digest }}
           push-to-registry: true
 
@@ -105,8 +108,8 @@ jobs:
       - name: Set up tags
         id: tags
         run: |
-          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-arm64
@@ -114,7 +117,8 @@ jobs:
         with:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
-            BASE_VERSION=${{ env.BASE_VERSION }}
+            ALPINE_VERSION=${{ env.ALPINE_VERSION }}
+            OPENSSL_VERSION=${{ env.OPENSSL_VERSION }}
           push: |
             ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true
              || github.ref == 'refs/heads/main' }}
@@ -123,10 +127,10 @@ jobs:
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
           # Improved cache configuration
           cache-from: |
-            type=gha,scope=alpine-fips-arm64-${{ env.BASE_VERSION }}
+            type=gha,scope=alpine-fips-arm64-${{ env.ALPINE_VERSION }}
             type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-arm64
           cache-to: |
-            type=gha,mode=max,scope=alpine-fips-arm64-${{ env.BASE_VERSION }},ignore-error=true
+            type=gha,mode=max,scope=alpine-fips-arm64-${{ env.ALPINE_VERSION }},ignore-error=true
           provenance: mode=max
           sbom: true
 
@@ -134,7 +138,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish == true || github.ref == 'refs/heads/main' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}-arm64
+          subject-name: ${{ env.IMAGE_NAME }}:latest-arm64
           subject-digest: ${{ steps.build-push-arm64.outputs.digest }}
           push-to-registry: true
 
@@ -157,8 +161,8 @@ jobs:
       - name: Set up tags
         id: tags
         run: |
-          echo "LATEST_TAG=${{ env.IMAGE_BASE }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.IMAGE_BASE }}:${{ env.BASE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Get arm64 digest
         id: arm64-digest
@@ -175,27 +179,27 @@ jobs:
       - name: Create and push latest manifest
         run: |
           docker manifest create ${{ steps.tags.outputs.LATEST_TAG }} \
-            ${{ env.IMAGE_BASE }}@${{ steps.arm64-digest.outputs.digest }} \
-            ${{ env.IMAGE_BASE }}@${{ steps.amd64-digest.outputs.digest }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.arm64-digest.outputs.digest }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.amd64-digest.outputs.digest }}
           docker manifest push -p ${{ steps.tags.outputs.LATEST_TAG }}
 
       - name: Create and push version manifest
         run: |
           docker manifest create ${{ steps.tags.outputs.VERSION_TAG }} \
-            ${{ env.IMAGE_BASE }}@${{ steps.arm64-digest.outputs.digest }} \
-            ${{ env.IMAGE_BASE }}@${{ steps.amd64-digest.outputs.digest }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.arm64-digest.outputs.digest }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.amd64-digest.outputs.digest }}
           docker manifest push -p ${{ steps.tags.outputs.VERSION_TAG }}
 
       - name: Attest latest manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
           push-to-registry: true
 
       - name: Attest version manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: index.${{ steps.tags.outputs.VERSION_TAG }}
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}
           subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.VERSION_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
           push-to-registry: true
