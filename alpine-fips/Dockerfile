@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.10
 # version of Alpine
-ARG BASE_VERSION=3.21
-FROM docker.io/library/alpine:${BASE_VERSION}
+ARG ALPINE_VERSION=3.22
+FROM docker.io/library/alpine:${ALPINE_VERSION}
 
 # This MUST be one of the FIPS validated versions listed at
 # https://openssl-library.org/source/
