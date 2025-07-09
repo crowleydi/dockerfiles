@@ -65,7 +65,7 @@ jobs:
         if: ${{ env.needToPush == 'true' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}-amd64
+          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}-amd64
           subject-digest: ${{ steps.build-push-amd64.outputs.digest }}
           push-to-registry: true
 
@@ -115,7 +115,7 @@ jobs:
         if: ${{ env.needToPush == 'true' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}-arm64
+          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}-arm64
           subject-digest: ${{ steps.build-push-arm64.outputs.digest }}
           push-to-registry: true
 
@@ -173,14 +173,14 @@ jobs:
       - name: Attest latest manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ steps.tags.outputs.LATEST_TAG }}
+          subject-name: index.${{ steps.tags.outputs.LATEST_TAG }}
           subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
           push-to-registry: true
 
       - name: Attest version manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ steps.tags.outputs.VERSION_TAG }}
+          subject-name: index.${{ steps.tags.outputs.VERSION_TAG }}
           subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.VERSION_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
           push-to-registry: true
 
