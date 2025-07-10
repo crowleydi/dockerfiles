@@ -147,7 +147,9 @@ jobs:
       digest: ${{ steps.build-push-arm64.outputs.digest }}
 
   create-push-manifests:
-    if: github.event_name == 'workflow_dispatch' && inputs.do_publish == 'true' || github.ref == 'refs/heads/main'
+    if: |
+      github.event_name == 'workflow_dispatch' && inputs.do_publish == 'true' ||
+      github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
     permissions:
