@@ -6,6 +6,11 @@ env:
 on:
   workflow_dispatch:
     inputs:
+      do_publish:
+        description: "Publish image after build?"
+        required: true
+        type: boolean
+        default: false
       tomcat_version:
         description: "The version of Tomcat to include in the image."
         required: true
@@ -29,6 +34,9 @@ jobs:
       id-token: write
       attestations: write
       packages: write
+    outputs:
+      digest: ${{ steps.build-push-amd64.outputs.digest }}
+
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -79,6 +87,8 @@ jobs:
       id-token: write
       attestations: write
       packages: write
+    outputs:
+      digest: ${{ steps.build-push-arm64.outputs.digest }}
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -121,7 +131,7 @@ jobs:
           push-to-registry: true
 
   create-push-manifests:
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     needs: [build-push-arm64, build-push-amd64]
     permissions:
@@ -136,51 +146,22 @@ jobs:
           username: ${{ vars.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: build and push multi-arch manifest
+        uses: int128/docker-manifest-create-action@v2
+        id: multi-arch
+        with:
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tomcat_version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:9.0
+          sources: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64
 
-      - name: Set up tags
-        id: tags
-        run: |
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tomcat_version }}" >> $GITHUB_OUTPUT
 
-      - name: Get arm64 digest
-        id: arm64-digest
-        run: |
-          digest=$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }}-arm64 | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest')
-          echo "digest=$digest" >> $GITHUB_OUTPUT
-
-      - name: Get amd64 digest
-        id: amd64-digest
-        run: |
-          digest=$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }}-amd64 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest')
-          echo "digest=$digest" >> $GITHUB_OUTPUT
-
-      - name: Create and push latest manifest
-        run: |
-          docker manifest create ${{ steps.tags.outputs.LATEST_TAG }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.arm64-digest.outputs.digest }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.amd64-digest.outputs.digest }}
-          docker manifest push -p ${{ steps.tags.outputs.LATEST_TAG }}
-
-      - name: Create and push version manifest
-        run: |
-          docker manifest create ${{ steps.tags.outputs.VERSION_TAG }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.arm64-digest.outputs.digest }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.amd64-digest.outputs.digest }}
-          docker manifest push -p ${{ steps.tags.outputs.VERSION_TAG }}
-
-      - name: Attest latest manifest
+      - name: Attest multi-arch manifest
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.LATEST_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
-          push-to-registry: true
-
-      - name: Attest version manifest
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: sha256:$(docker manifest inspect ${{ steps.tags.outputs.VERSION_TAG }} | jq -r '.config.digest' | sed 's/sha256://g')
+          subject-digest: ${{ steps.multi-arch.outputs.digest }}
           push-to-registry: true
