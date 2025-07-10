@@ -41,11 +41,15 @@ RUN apk --no-cache -U add \
 # cleanup GPG \
   && apk del gpg gpg-agent \
   && rm -fr ~/.gnupg/ \
+# setup tomcat user \
+  && adduser -D -H tomcat tomcat \
+  && chown -R tomcat:tomcat \
+    ${INSTALL_BASE}/apache-tomcat-${TOMCAT_VERSION} \
 # show Tomcat version to make sure things are installed and running \
   && openssl version \
   && catalina.sh version
 
 WORKDIR $CATALINA_HOME
 EXPOSE 8080
-
+USER tomcat
 CMD ["catalina.sh", "run"]
