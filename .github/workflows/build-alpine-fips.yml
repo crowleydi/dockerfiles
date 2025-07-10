@@ -170,7 +170,7 @@ jobs:
         with:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:{{ env.ALPINE_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}
           sources: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-push-arm64.outputs.digest }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-push-amd64.outputs.digest }}
