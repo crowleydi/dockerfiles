@@ -12,6 +12,10 @@ on:
 
 permissions:
   actions: write # Required to trigger other workflows
+  contents: read
+  id-token: write
+  attestations: write
+  packages: write
 
 jobs:
   check-version:
