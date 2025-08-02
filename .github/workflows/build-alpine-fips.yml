@@ -64,6 +64,7 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
+          digest: false
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-amd64-${{ env.ALPINE_VERSION }}
@@ -123,6 +124,7 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
+          digest: false
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-arm64-${{ env.ALPINE_VERSION }}
