@@ -67,7 +67,6 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
-          digest: false
           provenance: mode=max
           sbom: true
 
@@ -120,7 +119,6 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
-          digest: false
           provenance: mode=max
           sbom: true
 

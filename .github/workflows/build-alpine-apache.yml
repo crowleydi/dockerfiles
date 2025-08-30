@@ -54,7 +54,6 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
-          digest: false
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
           provenance: mode=max
@@ -104,7 +103,6 @@ jobs:
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
-          digest: false
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
           provenance: mode=max
