@@ -65,6 +65,22 @@ jobs:
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
             OPENSSL_VERSION=${{ inputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.title=Alpine FIPS
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.architecture=amd64
+            org.opencontainers.image.os=linux
+            org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
+            org.opencontainers.image.base.name=docker.io/library/alpine
+            org.opencontainers.image.base.digest=$(docker image inspect docker.io/library/alpine:${{ env.ALPINE_VERSION }} --format '{{.Id}}')
+            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.enabled=true
+            com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
@@ -124,6 +140,22 @@ jobs:
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
             OPENSSL_VERSION=${{ inputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.title=Alpine FIPS
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.architecture=arm64
+            org.opencontainers.image.os=linux
+            org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
+            org.opencontainers.image.base.name=docker.io/library/alpine
+            org.opencontainers.image.base.digest=$(docker image inspect docker.io/library/alpine:${{ env.ALPINE_VERSION }} --format '{{.Id}}')
+            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.enabled=true
+            com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
@@ -166,6 +198,21 @@ jobs:
         uses: int128/docker-manifest-create-action@v2
         id: multi-arch
         with:
+          labels: |
+            org.opencontainers.image.title=Alpine FIPS
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.os=linux
+            org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
+            org.opencontainers.image.base.name=docker.io/library/alpine
+            org.opencontainers.image.base.digest=$(docker image inspect docker.io/library/alpine:${{ env.ALPINE_VERSION }} --format '{{.Id}}')
+            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.enabled=true
+            com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
