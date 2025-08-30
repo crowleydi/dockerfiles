@@ -3,7 +3,6 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: kanstin/alpine-fips
   ALPINE_VERSION: 3.22
-  OPENSSL_VERSION: 3.1.2
 
 on:
   workflow_dispatch:
@@ -55,7 +54,7 @@ jobs:
         id: tags
         run: |
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ input.openssl_version }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-amd64
@@ -64,7 +63,7 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ env.OPENSSL_VERSION }}
+            OPENSSL_VERSION=${{ inputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
@@ -114,7 +113,7 @@ jobs:
         id: tags
         run: |
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ input.openssl_version }}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-arm64
@@ -123,7 +122,7 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ env.OPENSSL_VERSION }}
+            OPENSSL_VERSION=${{ inputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
@@ -169,7 +168,7 @@ jobs:
         with:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ env.OPENSSL_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
           sources: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64
