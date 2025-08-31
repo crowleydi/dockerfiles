@@ -42,10 +42,6 @@ RUN apk add build-base linux-headers perl gpg gpg-agent \
 # final stage
 FROM docker.io/library/alpine:${ALPINE_VERSION}
 
-LABEL maintainer="David Crowley <david.i.crowley@jpl.nasa.gov>"
-LABEL version="alpine${ALPINE_VERSION}-ossl${OPENSSL_VERSION}-fips"
-LABEL description="Alpine ${ALPINE_VERSION} with FIPS-compliant OpenSSL ${OPENSSL_VERSION}"
-
 # copy the built FIPS .so from the builder stage
 COPY --from=builder /usr/lib/ossl-modules/fips.so /usr/lib/ossl-modules/fips.so
 
