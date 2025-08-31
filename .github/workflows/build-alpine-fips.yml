@@ -55,7 +55,7 @@ jobs:
         run: |
           BASE_IMAGE=docker.io/library/alpine:${{ env.ALPINE_VERSION }}
           docker pull $BASE_IMAGE
-          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE} --format '{{.Id}}')" >> $GITHUB_OUTPUT
+          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
           echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}" >> $GITHUB_OUTPUT
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           BASE_IMAGE=docker.io/library/alpine:${{ env.ALPINE_VERSION }}
           docker pull $BASE_IMAGE
-          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE} --format '{{.Id}}')" >> $GITHUB_OUTPUT
+          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
           echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}" >> $GITHUB_OUTPUT
 
