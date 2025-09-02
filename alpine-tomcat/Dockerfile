@@ -1,11 +1,12 @@
-FROM docker.io/kanstin/alpine-fips:latest
+FROM docker.io/kanstin/alpine-fips:3.22-3.0.9
 
-ARG TOMCAT_VERSION=9.0.104
+ARG TOMCAT_VERSION=9.0.108
 ENV INSTALL_BASE=/usr/local
 ENV CATALINA_HOME=${INSTALL_BASE}/tomcat
 ENV PATH=${CATALINA_HOME}/bin:$PATH
 
-RUN apk --no-cache -U add \
+RUN apk upgrade \
+  && apk --no-cache add \
     tomcat-native \
     openjdk21-jre-headless \
     ca-certificates \
