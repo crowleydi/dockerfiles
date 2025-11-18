@@ -50,7 +50,7 @@ RUN apk upgrade \
   && openssl version \
   && catalina.sh version
 
-WORKDIR $CATALINA_HOME
+WORKDIR ${CATALINA_HOME}/.
 EXPOSE 8080
 USER tomcat
 CMD ["catalina.sh", "run"]
