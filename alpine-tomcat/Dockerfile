@@ -1,6 +1,6 @@
 FROM docker.io/kanstin/alpine-fips:3.22-3.0.9
 
-ARG TOMCAT_VERSION=9.0.108
+ARG TOMCAT_VERSION=9.0.112
 ENV INSTALL_BASE=/usr/local
 ENV CATALINA_HOME=${INSTALL_BASE}/tomcat
 ENV PATH=${CATALINA_HOME}/bin:$PATH
@@ -50,7 +50,7 @@ RUN apk upgrade \
   && openssl version \
   && catalina.sh version
 
-WORKDIR ${CATALINA_HOME}/.
+WORKDIR ${INSTALL_BASE}/apache-tomcat-${TOMCAT_VERSION}
 EXPOSE 8080
 USER tomcat
 CMD ["catalina.sh", "run"]

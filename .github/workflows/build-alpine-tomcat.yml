@@ -15,7 +15,7 @@ on:
         description: "The version of Tomcat to include in the image."
         required: true
         type: string
-        default: "9.0.107"
+        default: "9.0.112"
 
   workflow_call:
     inputs:
