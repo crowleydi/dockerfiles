@@ -2,7 +2,7 @@ name: Build alpine-fips Docker image
 env:
   REGISTRY: docker.io
   IMAGE_NAME: kanstin/alpine-fips
-  ALPINE_VERSION: 3.22
+  ALPINE_VERSION: 3.23
 
 on:
   workflow_dispatch:
