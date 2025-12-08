@@ -1,4 +1,4 @@
-FROM docker.io/kanstin/alpine-fips:3.22-3.0.9
+FROM docker.io/kanstin/alpine-fips:3.23-3.0.9
 
 ARG TOMCAT_VERSION=9.0.112
 ENV INSTALL_BASE=/usr/local

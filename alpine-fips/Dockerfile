@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.10
 # version of Alpine
-ARG ALPINE_VERSION=3.22
+ARG ALPINE_VERSION=3.23
 
 # build stage
 FROM docker.io/library/alpine:${ALPINE_VERSION} AS builder
