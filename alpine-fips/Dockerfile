@@ -1,13 +1,16 @@
 # syntax=docker/dockerfile:1.10
-# version of Alpine
-ARG ALPINE_VERSION=3.23
 
-# build stage
-FROM docker.io/library/alpine:${ALPINE_VERSION} AS builder
+# version of Alpine Linux base image
+ARG ALPINE_VERSION=3.23
 
 # This MUST be one of the FIPS validated versions listed at
 # https://openssl-library.org/source/
 ARG OPENSSL_VERSION=3.1.2
+
+# build stage
+FROM docker.io/library/alpine:${ALPINE_VERSION} AS builder
+
+ARG OPENSSL_VERSION
 
 # download source for the supplied version, verify checksum and
 # PGP signature, then build and install the FIPS module.
@@ -78,8 +81,8 @@ RUN apk --no-cache add openssl \
 # The MD5 test should evaluate to false because FIPS doesn't allow MD5 \
     && (! openssl md5 ${OPENCNF} \
         || { echo "MD5 test failed unexpectedly"; exit 1; }) \
-    && openssl sha1 ${OPENCNF} \
-        || { echo "SHA-1 test failed"; exit 1; } \
-    && openssl aes-256-cbc -k "$RANDOM" -in ${OPENCNF} -out /dev/null \
-        || { echo "AES test failed"; exit 1; } \
+    && (openssl sha1 ${OPENCNF} \
+        || { echo "SHA-1 test failed"; exit 1; }) \
+    && (openssl aes-256-cbc -k "$RANDOM" -pbkdf2 -iter 200000 -in ${OPENCNF} -out /dev/null \
+        || { echo "AES test failed"; exit 1; }) \
     && openssl list -providers
