@@ -1,4 +1,4 @@
-name: Build alpime-tomcat Docker image
+name: Build alpine-tomcat Docker image
 env:
   REGISTRY: docker.io
   TOMCAT_VERSION: "9.0.115"
@@ -54,7 +54,7 @@ jobs:
           SUBJECT="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           cat << EOF >> "${GITHUB_OUTPUT}"
           TOMCAT_VERSION=${full_version}
-          LATEST_TAG=${SUBJECT{}:latest
+          LATEST_TAG=${SUBJECT}:latest
           VERSION_TAG=${SUBJECT}:${full_version}
           MAJOR_MINOR_TAG=$SUBJECT:$(echo "${full_version}" | cut -d. -f1-2)
           SUBJECT=${SUBJECT}
