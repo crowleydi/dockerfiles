@@ -40,6 +40,7 @@ RUN apk upgrade \
   && gpg --verify "${TOMCAT_TAR}.asc" "${TOMCAT_TAR}" \
 # extract and move it to the install base directory \
   && tar xf "${TOMCAT_TAR}" \
+  && chmod -R o+rX "${TOMCAT_DIR}" \
   && mv "${TOMCAT_DIR}" "${INSTALL_BASE}" \
 # link the installed tomcat directory to be CATALINA_HOME \
   && ln -s "${INSTALL_BASE}/${TOMCAT_DIR}" "${CATALINA_HOME}" \
