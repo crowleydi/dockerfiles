@@ -3,6 +3,7 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: kanstin/alpine-fips
   ALPINE_VERSION: 3.23
+  OPENSSL_VERSION: 3.0.9
 
 on:
   workflow_dispatch:
@@ -16,7 +17,7 @@ on:
         description: "OpenSSL version?"
         required: true
         type: string
-        default: "3.0.9"
+        default: "{{ env.OPENSSL_VERSION }}"
   push:
     branches: [ "main" ]
     paths:
@@ -57,7 +58,9 @@ jobs:
           docker pull $BASE_IMAGE
           echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}" >> $GITHUB_OUTPUT
+          openssl_version="${{ github.event_name == 'workflow_dispatch' && inputs.openssl_version || env.OPENSSL_VERSION }}"
+          echo "openssl_version=$openssl_version" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${openssl_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-amd64
@@ -66,12 +69,12 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ inputs.openssl_version }}
+            OPENSSL_VERSION=${{ steps.tags.outputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -81,7 +84,7 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=${{ steps.tags.outputs.BASE_DIGEST }}
-            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
@@ -135,7 +138,9 @@ jobs:
           docker pull $BASE_IMAGE
           echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}" >> $GITHUB_OUTPUT
+          openssl_version="${{ github.event_name == 'workflow_dispatch' && inputs.openssl_version || env.OPENSSL_VERSION }}"
+          echo "openssl_version=$openssl_version" >> $GITHUB_OUTPUT
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${openssl_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-arm64
@@ -144,12 +149,12 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ inputs.openssl_version }}
+            OPENSSL_VERSION=${{ steps.tags.outputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -159,7 +164,7 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=${{ steps.tags.outputs.BASE_DIGEST }}
-            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
@@ -206,8 +211,8 @@ jobs:
         with:
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ inputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -216,12 +221,12 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=$(docker image inspect docker.io/library/alpine:${{ env.ALPINE_VERSION }} --format '{{.Id}}')
-            com.openssl.fips.version=${{ inputs.openssl_version }}
+            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ inputs.openssl_version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
           sources: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64
