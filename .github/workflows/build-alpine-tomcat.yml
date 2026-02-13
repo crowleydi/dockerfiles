@@ -1,6 +1,7 @@
 name: Build alpine-tomcat Docker image
 env:
   REGISTRY: docker.io
+  TOMCAT_VERSION: "9.0.115"
   IMAGE_NAME: kanstin/alpine-tomcat
 
 on:
@@ -15,7 +16,7 @@ on:
         description: "The version of Tomcat to include in the image."
         required: true
         type: string
-        default: "9.0.112"
+        default: "9.0.115"
 
   workflow_call:
     inputs:
@@ -23,6 +24,10 @@ on:
         description: "The version of Tomcat to include in the image."
         required: true
         type: string
+  push:
+    branches: [ "main" ]
+    paths:
+      - "alpine-tomcat/Dockerfile"
 
 jobs:
   build-push-amd64:
@@ -54,7 +59,9 @@ jobs:
         id: tags
         run: |
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tomcat_version }}" >> $GITHUB_OUTPUT
+          tomcat_version="${{ github.event_name == 'workflow_dispatch' && inputs.tomcat_version || env.TOMCAT_VERSION }}"
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tomcat_version}" >> $GITHUB_OUTPUT
+          echo "tomcat_version=${tomcat_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-amd64
@@ -63,7 +70,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: ${{ env.needToPush }}
           build-args: |
-            TOMCAT_VERSION=${{ inputs.tomcat_version }}
+            TOMCAT_VERSION=${{ steps.tags.outputs.tomcat_version }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-amd64
             ${{ steps.tags.outputs.VERSION_TAG }}-amd64
@@ -106,7 +113,9 @@ jobs:
         id: tags
         run: |
           echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tomcat_version }}" >> $GITHUB_OUTPUT
+          tomcat_version="${{ github.event_name == 'workflow_dispatch' && inputs.tomcat_version || env.TOMCAT_VERSION }}"
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tomcat_version}" >> $GITHUB_OUTPUT
+          echo "tomcat_version=${tomcat_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-arm64
@@ -115,7 +124,7 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: ${{ env.needToPush }}
           build-args: |
-            TOMCAT_VERSION=${{ inputs.tomcat_version }}
+            TOMCAT_VERSION=${{ steps.tags.outputs.tomcat_version }}
           tags: |
             ${{ steps.tags.outputs.LATEST_TAG }}-arm64
             ${{ steps.tags.outputs.VERSION_TAG }}-arm64
@@ -152,7 +161,7 @@ jobs:
         with:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tomcat_version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tomcat_version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:9.0
           sources: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
