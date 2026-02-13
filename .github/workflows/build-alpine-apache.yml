@@ -40,8 +40,8 @@ jobs:
       - name: Set up tags
         id: tags
         run: |
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.apache_version }}" >> $GITHUB_OUTPUT
+          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.apache_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build-push-amd64
@@ -89,8 +89,8 @@ jobs:
       - name: Set up tags
         id: tags
         run: |
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.apache_version }}" >> $GITHUB_OUTPUT
+          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"
+          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.apache_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build-push-arm64

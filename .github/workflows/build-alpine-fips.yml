@@ -18,18 +18,38 @@ on:
         required: true
         type: string
         default: "3.0.9"
-  push:
-    branches: [ "main" ]
-    paths:
-      - "alpine-fips/Dockerfile"
-
   pull_request:
     branches: [ "main" ]
     paths:
       - "alpine-fips/Dockerfile"
 
 jobs:
+  determine-version:
+    runs-on: ubuntu-24.04
+    outputs:
+      openssl_version: ${{ steps.set-version.outputs.OPENSSL_VERSION }}
+      latest_tag:      ${{ steps.set-version.outputs.LATEST_TAG }}
+      version_tag:     ${{ steps.set-version.outputs.VERSION_TAG }}
+      subject:         ${{ steps.set-version.outputs.SUBJECT }}
+    steps:
+      - id: set-version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            full_version="${{ inputs.openssl_version || env.OPENSSL_VERSION }}"
+          else
+            full_version="${{ env.OPENSSL_VERSION }}"
+          fi
+
+          SUBJECT="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          cat << EOF >> "$GITHUB_OUTPUT"
+          OPENSSL_VERSION=${full_version}
+          LATEST_TAG=${SUBJECT}:latest
+          VERSION_TAG=${SUBJECT}:${{ env.ALPINE_VERSION }}-${full_version}
+          SUBJECT=${SUBJECT}
+          EOF
+
   build-push-amd64:
+    needs: determine-version
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -51,16 +71,12 @@ jobs:
         with:
           buildkitd-flags: --debug
 
-      - name: Set up tags
+      - name: Determine base image digest
         id: tags
         run: |
-          BASE_IMAGE=docker.io/library/alpine:${{ env.ALPINE_VERSION }}
-          docker pull $BASE_IMAGE
-          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          openssl_version="${{ github.event_name == 'workflow_dispatch' && inputs.openssl_version || env.OPENSSL_VERSION }}"
-          echo "openssl_version=$openssl_version" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${openssl_version}" >> $GITHUB_OUTPUT
+          BASE_IMAGE="docker.io/library/alpine:${{ env.ALPINE_VERSION }}"
+          docker pull "$BASE_IMAGE"
+          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build-push-amd64
@@ -69,12 +85,12 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ steps.tags.outputs.openssl_version }}
+            OPENSSL_VERSION=${{ needs.determine-version.outputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ needs.determine-version.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ needs.determine-version.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -84,16 +100,16 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=${{ steps.tags.outputs.BASE_DIGEST }}
-            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
+            com.openssl.fips.version=${{ needs.determine-version.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
-            ${{ steps.tags.outputs.LATEST_TAG }}-amd64
-            ${{ steps.tags.outputs.VERSION_TAG }}-amd64
+            ${{ needs.determine-version.outputs.latest_tag }}-amd64
+            ${{ needs.determine-version.outputs.version_tag }}-amd64
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-amd64-${{ env.ALPINE_VERSION }}
-            type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-amd64
+            type=registry,ref=${{ needs.determine-version.outputs.latest_tag }}-amd64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-amd64-${{ env.ALPINE_VERSION }},ignore-error=true
           provenance: mode=max
@@ -103,13 +119,14 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.build-push-amd64.outputs.digest }}
           push-to-registry: true
     outputs:
       digest: ${{ steps.build-push-amd64.outputs.digest }}
 
   build-push-arm64:
+    needs: determine-version
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -131,16 +148,12 @@ jobs:
         with:
           buildkitd-flags: --debug
 
-      - name: Set up tags
+      - name: Determine base image digest
         id: tags
         run: |
-          BASE_IMAGE=docker.io/library/alpine:${{ env.ALPINE_VERSION }}
-          docker pull $BASE_IMAGE
-          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> $GITHUB_OUTPUT
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          openssl_version="${{ github.event_name == 'workflow_dispatch' && inputs.openssl_version || env.OPENSSL_VERSION }}"
-          echo "openssl_version=$openssl_version" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${openssl_version}" >> $GITHUB_OUTPUT
+          BASE_IMAGE="docker.io/library/alpine:${{ env.ALPINE_VERSION }}"
+          docker pull "$BASE_IMAGE"
+          echo "BASE_DIGEST=$(docker image inspect $BASE_IMAGE --format '{{.Id}}')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build-push-arm64
@@ -149,12 +162,12 @@ jobs:
           context: "{{defaultContext}}:alpine-fips"
           build-args: |
             ALPINE_VERSION=${{ env.ALPINE_VERSION }}
-            OPENSSL_VERSION=${{ steps.tags.outputs.openssl_version }}
+            OPENSSL_VERSION=${{ needs.determine-version.outputs.openssl_version }}
           push: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ needs.determine-version.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ needs.determine-version.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -164,16 +177,16 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=${{ steps.tags.outputs.BASE_DIGEST }}
-            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
+            com.openssl.fips.version=${{ needs.determine-version.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
-            ${{ steps.tags.outputs.LATEST_TAG }}-arm64
-            ${{ steps.tags.outputs.VERSION_TAG }}-arm64
+            ${{ needs.determine-version.outputs.latest_tag }}-arm64
+            ${{ needs.determine-version.outputs.version_tag }}-arm64
           # Improved cache configuration
           cache-from: |
             type=gha,scope=alpine-fips-arm64-${{ env.ALPINE_VERSION }}
-            type=registry,ref=${{ steps.tags.outputs.LATEST_TAG }}-arm64
+            type=registry,ref=${{ needs.determine-version.outputs.latest_tag }}-arm64
           cache-to: |
             type=gha,mode=max,scope=alpine-fips-arm64-${{ env.ALPINE_VERSION }},ignore-error=true
           provenance: mode=max
@@ -183,7 +196,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.build-push-arm64.outputs.digest }}
           push-to-registry: true
     outputs:
@@ -192,7 +205,7 @@ jobs:
   create-push-manifests:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
-    needs: [build-push-arm64, build-push-amd64]
+    needs: [determine-version, build-push-arm64, build-push-amd64]
     permissions:
       contents: read
       id-token: write
@@ -211,8 +224,8 @@ jobs:
         with:
           labels: |
             org.opencontainers.image.title=Alpine FIPS
-            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ steps.tags.outputs.openssl_version }} FIPS module
-            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
+            org.opencontainers.image.description=Alpine Linux ${{ env.ALPINE_VERSION }} with OpenSSL ${{ needs.determine-version.outputs.openssl_version }} FIPS module
+            org.opencontainers.image.version=${{ env.ALPINE_VERSION }}-${{ needs.determine-version.outputs.openssl_version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -221,19 +234,19 @@ jobs:
             org.opencontainers.image.os.version=alpine-${{ env.ALPINE_VERSION }}
             org.opencontainers.image.base.name=docker.io/library/alpine
             org.opencontainers.image.base.digest=$(docker image inspect docker.io/library/alpine:${{ env.ALPINE_VERSION }} --format '{{.Id}}')
-            com.openssl.fips.version=${{ steps.tags.outputs.openssl_version }}
+            com.openssl.fips.version=${{ needs.determine-version.outputs.openssl_version }}
             com.openssl.fips.enabled=true
             com.alpine.version=${{ env.ALPINE_VERSION }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.ALPINE_VERSION }}-${{ steps.tags.outputs.openssl_version }}
+            ${{ needs.determine-version.outputs.latest_tag }}
+            ${{ needs.determine-version.outputs.version_tag }}
           sources: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64
+            ${{ needs.determine-version.outputs.latest_tag }}-arm64
+            ${{ needs.determine-version.outputs.latest_tag }}-amd64
 
       - name: Attest multi-arch manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.multi-arch.outputs.digest }}
           push-to-registry: true

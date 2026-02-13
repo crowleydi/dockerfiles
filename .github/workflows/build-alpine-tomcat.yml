@@ -1,4 +1,4 @@
-name: Build alpine-tomcat Docker image
+name: Build alpime-tomcat Docker image
 env:
   REGISTRY: docker.io
   TOMCAT_VERSION: "9.0.115"
@@ -17,20 +17,51 @@ on:
         required: true
         type: string
         default: "9.0.115"
-
   workflow_call:
     inputs:
       tomcat_version:
         description: "The version of Tomcat to include in the image."
         required: true
         type: string
-  push:
+      do_publish:
+        description: "Publish image after build?"
+        required: false
+        type: boolean
+        default: true
+  pull_request:
     branches: [ "main" ]
     paths:
       - "alpine-tomcat/Dockerfile"
 
 jobs:
+  determine-version:
+    runs-on: ubuntu-24.04
+    outputs:
+      tomcat_version:  ${{ steps.set-version.outputs.TOMCAT_VERSION }}
+      latest_tag:      ${{ steps.set-version.outputs.LATEST_TAG }}
+      version_tag:     ${{ steps.set-version.outputs.VERSION_TAG }}
+      major_minor_tag: ${{ steps.set-version.outputs.MAJOR_MINOR_TAG }}
+      subject:          ${{ steps.set-version.outputs.SUBJECT }}
+    steps:
+      - id: set-version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "workflow_call" ]]; then
+              full_version="${{ inputs.tomcat_version || env.TOMCAT_VERSION }}"
+          else
+              full_version="${{ env.TOMCAT_VERSION }}"
+          fi
+
+          SUBJECT="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          cat << EOF >> "${GITHUB_OUTPUT}"
+          TOMCAT_VERSION=${full_version}
+          LATEST_TAG=${SUBJECT{}:latest
+          VERSION_TAG=${SUBJECT}:${full_version}
+          MAJOR_MINOR_TAG=$SUBJECT:$(echo "${full_version}" | cut -d. -f1-2)
+          SUBJECT=${SUBJECT}
+          EOF
+
   build-push-amd64:
+    needs: determine-version
     runs-on: ubuntu-24.04
     env:
       needToPush: ${{ github.ref == 'refs/heads/main' }}
@@ -55,13 +86,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up tags
-        id: tags
-        run: |
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          tomcat_version="${{ github.event_name == 'workflow_dispatch' && inputs.tomcat_version || env.TOMCAT_VERSION }}"
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tomcat_version}" >> $GITHUB_OUTPUT
-          echo "tomcat_version=${tomcat_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-amd64
@@ -70,10 +94,10 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: ${{ env.needToPush }}
           build-args: |
-            TOMCAT_VERSION=${{ steps.tags.outputs.tomcat_version }}
+            TOMCAT_VERSION=${{ needs.determine-version.outputs.tomcat_version }}
           tags: |
-            ${{ steps.tags.outputs.LATEST_TAG }}-amd64
-            ${{ steps.tags.outputs.VERSION_TAG }}-amd64
+            ${{ needs.determine-version.outputs.latest_tag }}-amd64
+            ${{ needs.determine-version.outputs.version_tag }}-amd64
           provenance: mode=max
           sbom: true
 
@@ -81,11 +105,12 @@ jobs:
         if: ${{ env.needToPush == 'true' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.build-push-amd64.outputs.digest }}
           push-to-registry: true
 
   build-push-arm64:
+    needs: determine-version
     runs-on: ubuntu-24.04-arm
     env:
       needToPush: ${{ github.ref == 'refs/heads/main' }}
@@ -109,13 +134,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up tags
-        id: tags
-        run: |
-          echo "LATEST_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          tomcat_version="${{ github.event_name == 'workflow_dispatch' && inputs.tomcat_version || env.TOMCAT_VERSION }}"
-          echo "VERSION_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tomcat_version}" >> $GITHUB_OUTPUT
-          echo "tomcat_version=${tomcat_version}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         id: build-push-arm64
@@ -124,10 +142,10 @@ jobs:
           context: "{{defaultContext}}:alpine-tomcat"
           push: ${{ env.needToPush }}
           build-args: |
-            TOMCAT_VERSION=${{ steps.tags.outputs.tomcat_version }}
+            TOMCAT_VERSION=${{ needs.determine-version.outputs.tomcat_version }}
           tags: |
-            ${{ steps.tags.outputs.LATEST_TAG }}-arm64
-            ${{ steps.tags.outputs.VERSION_TAG }}-arm64
+            ${{ needs.determine-version.outputs.latest_tag }}-arm64
+            ${{ needs.determine-version.outputs.version_tag }}-arm64
           provenance: mode=max
           sbom: true
 
@@ -135,14 +153,14 @@ jobs:
         if: ${{ env.needToPush == 'true' }}
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.build-push-arm64.outputs.digest }}
           push-to-registry: true
 
   create-push-manifests:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.do_publish || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
-    needs: [build-push-arm64, build-push-amd64]
+    needs: [determine-version, build-push-arm64, build-push-amd64]
     permissions:
       contents: read
       id-token: write
@@ -160,17 +178,17 @@ jobs:
         id: multi-arch
         with:
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.tomcat_version }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:9.0
+            ${{ needs.determine-version.outputs.version_tag }}
+            ${{ needs.determine-version.outputs.major_minor_tag }}
+            ${{ needs.determine-version.outputs.latest_tag }}
           sources: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64
+            ${{ needs.determine-version.outputs.latest_tag }}-arm64
+            ${{ needs.determine-version.outputs.latest_tag }}-amd64
 
 
       - name: Attest multi-arch manifest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ needs.determine-version.outputs.subject }}
           subject-digest: ${{ steps.multi-arch.outputs.digest }}
           push-to-registry: true

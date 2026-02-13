@@ -39,9 +39,9 @@ jobs:
         id: previous
         run: |
           if [ -f "previous_version.txt" ]; then
-            echo "version=$(cat previous_version.txt)" >> $GITHUB_OUTPUT
+            echo "version=$(cat previous_version.txt)" >> "$GITHUB_OUTPUT"
           else
-            echo "version=none" >> $GITHUB_OUTPUT
+            echo "version=none" >> "$GITHUB_OUTPUT"
           fi
 
       # Scrape the latest Tomcat version using curl and grep/sed
@@ -53,7 +53,7 @@ jobs:
             sed -E 's/.*<h3 id="(9\.0\.[0-9]+)">.*/\1/' > version.txt || \
             echo "unknown" > version.txt
           cat version.txt
-          echo "new_version=$(cat version.txt)" >> $GITHUB_OUTPUT
+          echo "new_version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
 
       # Compare versions
       - name: Compare versions
@@ -69,10 +69,10 @@ jobs:
           elif [ "$previous_version" == "none" ] \
             || [ "$previous_version" != "$new_version" ]; then
             echo "New Tomcat version detected: $new_version"
-            echo "new_version_detected=true" >> $GITHUB_OUTPUT
+            echo "new_version_detected=true" >> "$GITHUB_OUTPUT"
           else
             echo "No new version detected :("
-            echo "new_version_detected=false" >> $GITHUB_OUTPUT
+            echo "new_version_detected=false" >> "$GITHUB_OUTPUT"
           fi
 
       # Save new version to cache
