@@ -10,7 +10,7 @@ ENV PATH=${CATALINA_HOME}/bin:$PATH
 RUN apk upgrade \
   && apk --no-cache add \
 # going to remove these \
-    build-base gpg gpg-agent openjdk21-jdk apr-dev openssl-dev \
+    build-base gpg gpg-agent openjdk21-jdk apr-dev openssl-dev curl \
 # keep these \
     openjdk21-jre-headless apr ca-certificates \
 # download known tomcat signer keys \
@@ -32,9 +32,9 @@ RUN apk upgrade \
   && TOMCAT_TAR="${TOMCAT_DIR}.tar.gz" \
   && TOMCAT_URL="${APACHE_URL}/tomcat-9/v${TOMCAT_VERSION}/bin" \
 # download the tar, sha, and signature \
-  && wget "${TOMCAT_URL}/${TOMCAT_TAR}" \
-  && wget "${TOMCAT_URL}/${TOMCAT_TAR}.sha512" \
-  && wget "${TOMCAT_URL}/${TOMCAT_TAR}.asc" \
+  && curl -L -O --retry 3 "${TOMCAT_URL}/${TOMCAT_TAR}" \
+  && curl -L -O --retry 3 "${TOMCAT_URL}/${TOMCAT_TAR}.sha512" \
+  && curl -L -O --retry 3 "${TOMCAT_URL}/${TOMCAT_TAR}.asc" \
 # verify the tar file 2x \
   && sha512sum -c "${TOMCAT_TAR}.sha512" \
   && gpg --verify "${TOMCAT_TAR}.asc" "${TOMCAT_TAR}" \
@@ -51,9 +51,9 @@ RUN apk upgrade \
   && TCNATIVE_DIR="tomcat-native-${TCNATIVE_VERSION}-src" \
   && TCNATIVE_TAR="${TCNATIVE_DIR}.tar.gz" \
   && TCNATIVE_URL="${APACHE_URL}/tomcat-connectors/native/${TCNATIVE_VERSION}/source" \
-  && wget "${TCNATIVE_URL}/${TCNATIVE_TAR}" \
-  && wget "${TCNATIVE_URL}/${TCNATIVE_TAR}.sha512" \
-  && wget "${TCNATIVE_URL}/${TCNATIVE_TAR}.asc" \
+  && curl -L -O --retry 3 "${TCNATIVE_URL}/${TCNATIVE_TAR}" \
+  && curl -L -O --retry 3 "${TCNATIVE_URL}/${TCNATIVE_TAR}.sha512" \
+  && curl -L -O --retry 3 "${TCNATIVE_URL}/${TCNATIVE_TAR}.asc" \
 # verify the tar file 2x \
   && sha512sum -c "${TCNATIVE_TAR}.sha512" \
   && gpg --verify "${TCNATIVE_TAR}.asc" "${TCNATIVE_TAR}" \
@@ -74,7 +74,7 @@ RUN apk upgrade \
   && cd / \
   && rm -fr /work ~/.gnupg/ \
   && apk del \
-    build-base gpg gpg-agent openjdk21-jdk apr-dev openssl-dev \
+    build-base gpg gpg-agent openjdk21-jdk apr-dev openssl-dev curl \
 # setup tomcat user \
   && adduser -D -H tomcat tomcat \
   && chown -R tomcat:tomcat \

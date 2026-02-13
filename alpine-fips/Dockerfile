@@ -14,15 +14,15 @@ ARG OPENSSL_VERSION
 
 # download source for the supplied version, verify checksum and
 # PGP signature, then build and install the FIPS module.
-RUN apk add build-base linux-headers perl gpg gpg-agent \
+RUN apk add build-base linux-headers perl gpg gpg-agent curl \
 # do build under /build \
     && mkdir /build && cd /build \
 # download tarball, sha, signature \
     && OPENSSL_TAR=openssl-${OPENSSL_VERSION}.tar.gz \
     && URL="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}" \
-    && wget --tries=3 ${URL}/${OPENSSL_TAR} \
-    && wget --tries=3 ${URL}/${OPENSSL_TAR}.sha256 \
-    && wget --tries=3 ${URL}/${OPENSSL_TAR}.asc \
+    && curl -L -O --retry 3 ${URL}/${OPENSSL_TAR} \
+    && curl -L -O --retry 3 ${URL}/${OPENSSL_TAR}.sha256 \
+    && curl -L -O --retry 3 ${URL}/${OPENSSL_TAR}.asc \
 # verify the sha \
     && echo $(cat ${OPENSSL_TAR}.sha256) ${OPENSSL_TAR} | sha256sum -c - \
 # download signature keys and verify the signature \
